@@ -29,6 +29,7 @@ class App(object):
     :raises: :py:class:`.RequestError`
         if requested endpoint doesn't exist.
     """
+
     def __init__(self, api, name):
         self.api = api
         self.name = name
@@ -40,18 +41,14 @@ class App(object):
         "ipam": ipam,
         "circuits": circuits,
         "virtualization": virtualization,
-        "extras": extras
+        "extras": extras,
     }
 
     def _setmodel(self):
         self.model = App.models[self.name] if self.name in App.models else None
 
     def __getstate__(self):
-        return {
-            'api': self.api,
-            'name': self.name,
-            '_choices': self._choices
-        }
+        return {"api": self.api, "name": self.name, "_choices": self._choices}
 
     def __setstate__(self, d):
         self.__dict__.update(d)
@@ -91,8 +88,7 @@ class App(object):
         """
         custom_field_choices = Request(
             base="{}/{}/_custom_field_choices/".format(
-                self.api.base_url,
-                self.name,
+                self.api.base_url, self.name,
             ),
             token=self.api.token,
             private_key=self.api.private_key,
@@ -152,6 +148,7 @@ class Api(object):
         private_key=None,
         private_key_file=None,
         ssl_verify=True,
+        custom_headers={},
     ):
         if private_key and private_key_file:
             raise ValueError(
@@ -164,6 +161,7 @@ class Api(object):
         self.base_url = base_url
         self.ssl_verify = ssl_verify
         self.session_key = None
+        self.custom_headers = custom_headers
         self.http_session = requests.Session()
 
         if self.private_key_file:
@@ -176,7 +174,7 @@ class Api(object):
             token=token,
             private_key=private_key,
             ssl_verify=ssl_verify,
-            http_session=self.http_session
+            http_session=self.http_session,
         )
         if self.token and self.private_key:
             self.session_key = req.get_session_key()

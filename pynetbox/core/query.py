@@ -140,6 +140,7 @@ class Request(object):
         private_key=None,
         session_key=None,
         ssl_verify=True,
+        custom_headers={},
     ):
         """
         Instantiates a new Request object
@@ -162,6 +163,7 @@ class Request(object):
         self.session_key = session_key
         self.ssl_verify = ssl_verify
         self.http_session = http_session
+        self.custom_headers = custom_headers
         self.url = self.base if not key else "{}{}/".format(self.base, key)
 
     def get_version(self):
@@ -175,6 +177,7 @@ class Request(object):
         present in the headers.
         """
         headers = {
+            **self.custom_headers,
             "Content-Type": "application/json;",
         }
         req = requests.get(
@@ -198,6 +201,7 @@ class Request(object):
         req = self.http_session.post(
             "{}secrets/get-session-key/?preserve_key=True".format(self.base),
             headers={
+                **self.custom_headers,
                 "accept": "application/json",
                 "authorization": "Token {}".format(self.token),
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -225,9 +229,12 @@ class Request(object):
         self, verb="get", url_override=None, add_params=None, data=None
     ):
         if verb in ("post", "put"):
-            headers = {"Content-Type": "application/json;"}
+            headers = {
+                **self.custom_headers,
+                "Content-Type": "application/json;",
+            }
         else:
-            headers = {"accept": "application/json;"}
+            headers = {**self.custom_headers, "accept": "application/json;"}
 
         if self.token:
             headers["authorization"] = "Token {}".format(self.token)
@@ -242,8 +249,11 @@ class Request(object):
                 params.update(add_params)
 
         req = getattr(self.http_session, verb)(
-            url_override or self.url, headers=headers, verify=self.ssl_verify,
-            params=params, json=data
+            url_override or self.url,
+            headers=headers,
+            verify=self.ssl_verify,
+            params=params,
+            json=data,
         )
 
         if req.status_code == 204 and verb == "post":
@@ -284,10 +294,12 @@ class Request(object):
                     # passed in here because results from detail routes aren't
                     # paginated, thus far.
                     if first_run:
-                        req = self._make_call(add_params={
-                            "limit": req["count"],
-                            "offset": len(req["results"])
-                        })
+                        req = self._make_call(
+                            add_params={
+                                "limit": req["count"],
+                                "offset": len(req["results"]),
+                            }
+                        )
                     else:
                         req = self._make_call(url_override=req["next"])
                     first_run = False
